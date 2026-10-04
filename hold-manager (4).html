@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LNT Hold Manager — Dolly Parton</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #15131A;
+    --panel: #1E1B24;
+    --panel-raised: #262230;
+    --line: #35303F;
+    --text: #F2EFE9;
+    --text-dim: #A79DB0;
+    --gold: #E8A33D;
+    --art: #E8546B;
+    --lnt: #4F8FE8;
+    --caa: #4FC2A0;
+    --danger: #E8546B;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+  }
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  .app{display:flex; min-height:100vh;}
+
+  /* Sidebar */
+  .sidebar{
+    width:220px; flex-shrink:0;
+    background:var(--panel);
+    border-right:1px solid var(--line);
+    padding:24px 0;
+    display:flex; flex-direction:column;
+    position:sticky; top:0; height:100vh;
+  }
+  .brand{
+    padding:0 20px 20px 20px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:12px;
+  }
+  .brand .mark{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:700;
+    font-size:22px;
+    letter-spacing:0.01em;
+    color:var(--gold);
+    line-height:1;
+  }
+  .brand .sub{
+    font-size:11px; color:var(--text-dim); margin-top:4px;
+  }
+  .nav{display:flex; flex-direction:column; gap:2px; padding:0 12px;}
+  .nav button{
+    all:unset; cursor:pointer;
+    padding:10px 12px; border-radius:6px;
+    font-size:14px; color:var(--text-dim);
+    display:flex; align-items:center; gap:10px;
+  }
+  .nav button:hover{background:var(--panel-raised); color:var(--text);}
+  .nav button.active{background:var(--panel-raised); color:var(--text); font-weight:600;}
+  .nav button .dot{width:7px;height:7px;border-radius:50%;background:var(--line);}
+  .nav button.active .dot{background:var(--gold);}
+  .pending-badge{
+    margin-left:auto; background:var(--gold); color:#1A1510;
+    font-size:11px; font-weight:600; padding:1px 7px; border-radius:10px;
+  }
+  .sidebar-foot{
+    margin-top:auto; padding:16px 20px 4px 20px;
+    font-size:11px; color:var(--text-dim); border-top:1px solid var(--line);
+    line-height:1.5;
+  }
+
+  /* Main */
+  .main{flex:1; padding:28px 36px 60px 36px; max-width:1180px;}
+  .eventbar{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    padding-bottom:18px; margin-bottom:24px; border-bottom:1px solid var(--line);
+  }
+  .eventbar h1{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:700; font-size:34px; margin:0; line-height:1.05;
+  }
+  .eventbar .meta{color:var(--text-dim); font-size:13.5px; margin-top:6px;}
+  .eventbar .cap{
+    text-align:right; font-size:12.5px; color:var(--text-dim);
+  }
+  .eventbar .cap b{color:var(--text); font-size:15px; display:block;}
+
+  h2.section-title{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:700; font-size:20px; letter-spacing:0.01em;
+    margin:0 0 14px 0;
+  }
+
+  /* Stat tiles */
+  .tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:32px;}
+  .tile{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:16px 18px; border-top:3px solid var(--c);
+  }
+  .tile .name{font-size:13px; color:var(--text-dim); display:flex; justify-content:space-between;}
+  .tile .grp{font-size:11px; color:var(--text-dim);}
+  .tile .nums{display:flex; align-items:baseline; gap:8px; margin-top:10px;}
+  .tile .remaining{font-size:30px; font-weight:600; font-family:'IBM Plex Mono', monospace;}
+  .tile .outof{font-size:13px; color:var(--text-dim);}
+  .tile .bar{height:5px; background:var(--line); border-radius:3px; margin-top:12px; overflow:hidden;}
+  .tile .bar-fill{height:100%; background:var(--c);}
+
+  /* Seat grid */
+  .seatwrap{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:20px; margin-bottom:28px;
+  }
+  .legend{display:flex; gap:18px; margin-bottom:16px; flex-wrap:wrap;}
+  .legend .item{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--text-dim);}
+  .legend .sw{width:11px; height:11px; border-radius:3px;}
+  .section-grid{display:flex; flex-direction:column; gap:18px;}
+  .section-block{display:flex; flex-direction:column; gap:6px;}
+  .section-heading{
+    font-family:'IBM Plex Mono', monospace; font-size:13px; font-weight:600;
+    color:var(--text); letter-spacing:0.02em;
+  }
+  .section-row{display:flex; align-items:center; gap:14px;}
+  .section-label{
+    width:64px; flex-shrink:0; font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px; color:var(--text-dim); text-align:right;
+  }
+  .row-label{
+    width:58px; flex-shrink:0; font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px; color:var(--text-dim); text-align:right;
+  }
+  .seat-cells{display:flex; flex-wrap:wrap; gap:3px;}
+  .seat-cell{
+    width:24px; height:18px; border-radius:3px;
+    opacity:0.95;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', monospace; font-size:9.5px; font-weight:600;
+    color:rgba(255,255,255,0.95); text-shadow:0 1px 1px rgba(0,0,0,0.35);
+  }
+  .seat-cell.assigned{opacity:0.28;}
+
+  /* Ticketor manual seat picker */
+  .seat-pick-wrap{
+    background:var(--bg); border:1px solid var(--line); border-radius:8px;
+    padding:12px; margin-top:4px; max-height:220px; overflow-y:auto;
+  }
+  .seat-pick-grid{display:flex; flex-wrap:wrap; gap:4px;}
+  .seat-pick{
+    all:unset; cursor:pointer; box-sizing:border-box;
+    width:66px; height:26px; border-radius:4px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; font-weight:600;
+    color:rgba(255,255,255,0.95); text-shadow:0 1px 1px rgba(0,0,0,0.35);
+    border:2px solid transparent;
+  }
+  .seat-pick.selected{border-color:var(--gold); box-shadow:0 0 0 1px var(--gold) inset;}
+  .seat-pick-empty{color:var(--text-dim); font-size:13px; padding:8px 2px;}
+  .seat-pick-counter{font-size:12.5px; color:var(--text-dim); margin:8px 0 4px 0;}
+  .seat-pick-counter.ready{color:var(--caa); font-weight:600;}
+
+  /* Forms */
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:24px; max-width:620px;
+  }
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:13px; color:var(--text-dim); margin-bottom:6px;}
+  .field input, .field select{
+    width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text);
+    padding:9px 11px; border-radius:6px; font-size:14px; font-family:inherit;
+  }
+  .field input:focus, .field select:focus{outline:2px solid var(--gold); outline-offset:1px;}
+  .field .hint{font-size:11.5px; color:var(--text-dim); margin-top:5px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .checkfield{display:flex; align-items:center; gap:9px; margin-bottom:18px;}
+  .checkfield input{width:auto;}
+  .checkfield label{font-size:13.5px; color:var(--text); margin:0;}
+  .btn{
+    all:unset; cursor:pointer; background:var(--gold); color:#1A1510;
+    font-weight:600; font-size:14px; padding:11px 20px; border-radius:6px;
+    display:inline-block;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn:disabled{opacity:0.4; cursor:not-allowed;}
+  .btn.ghost{background:transparent; border:1px solid var(--line); color:var(--text);}
+  .btn.reject{background:transparent; border:1px solid var(--danger); color:var(--danger);}
+  .form-foot-note{font-size:11.5px; color:var(--text-dim); margin-top:14px; line-height:1.5;}
+
+  /* Queue table */
+  .queue{display:flex; flex-direction:column; gap:10px;}
+  .req-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:16px 18px;
+  }
+  .req-top{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
+  .req-name{font-weight:600; font-size:15px;}
+  .req-chip{
+    font-size:11px; font-weight:600; padding:2px 9px; border-radius:10px;
+    color:#15131A;
+  }
+  .req-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:12px 0; font-size:12.5px;}
+  .req-grid div span{display:block; color:var(--text-dim); font-size:11px;}
+  .req-actions{display:flex; gap:10px; margin-top:4px;}
+  .empty{color:var(--text-dim); font-size:14px; padding:30px 0; text-align:center;}
+
+  .log{margin-top:28px;}
+  .log-item{
+    display:flex; gap:10px; font-size:12.5px; padding:8px 0; border-bottom:1px solid var(--line);
+    color:var(--text-dim);
+  }
+  .log-item .t{font-family:'IBM Plex Mono', monospace; flex-shrink:0; color:var(--text-dim);}
+  .log-item b{color:var(--text); font-weight:500;}
+
+  .toast{
+    position:fixed; bottom:24px; right:24px; background:var(--panel-raised);
+    border:1px solid var(--gold); border-radius:8px; padding:14px 18px;
+    font-size:13.5px; max-width:320px; box-shadow:0 8px 24px rgba(0,0,0,0.4);
+    animation: slidein 0.25s ease-out;
+  }
+  @keyframes slidein{from{transform:translateY(10px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+const EVENT = {
+  tour: "Dolly Parton — I Will Always Love You Tour",
+  venue: "Caesars Superdome",
+  datetime: "Sunday, October 4, 2026 · 7:00 PM",
+  capacity: 65939
+};
+
+const SHOW_LOCATIONS = ["New Orleans"];
+
+const HOLD_META = {
+  DOLLYHOLD: { label: "Artist Hold", group: "1-ART", color: "var(--art)", colorHex:"#E8546B" },
+  LNTHOLD:   { label: "Live Nation Hold", group: "D-LN", color: "var(--lnt)", colorHex:"#4F8FE8" },
+  CAAHOLD:   { label: "CAA Hold", group: "D-LN", color: "var(--caa)", colorHex:"#4FC2A0" },
+};
+
+let SEATS = []; // loaded from embedded data
+let REQUESTS = [];
+let LOG = [];
+let LINKS = []; // ticketor-generated guest request links
+
+// ---------- storage helpers ----------
+async function loadState(){
+  // Always have a safe in-memory default before touching storage at all.
+  SEATS = JSON.parse(SEED_SEATS);
+  REQUESTS = [];
+  LOG = [];
+  LINKS = [];
+
+  try{
+    const seatRes = await window.storage.get('seats', true);
+    if(seatRes && seatRes.value) SEATS = JSON.parse(seatRes.value);
+  }catch(e){
+    // No saved seats yet (or storage unavailable) — persist the seed, but never let
+    // a failed write here block the rest of the app from loading.
+    try{ await window.storage.set('seats', JSON.stringify(SEATS), true); }catch(e2){ /* ignore */ }
+  }
+  try{
+    const reqRes = await window.storage.get('requests', true);
+    if(reqRes && reqRes.value) REQUESTS = JSON.parse(reqRes.value);
+  }catch(e){ /* keep [] default */ }
+  try{
+    const logRes = await window.storage.get('log', true);
+    if(logRes && logRes.value) LOG = JSON.parse(logRes.value);
+  }catch(e){ /* keep [] default */ }
+  try{
+    const linkRes = await window.storage.get('links', true);
+    if(linkRes && linkRes.value) LINKS = JSON.parse(linkRes.value);
+  }catch(e){ /* keep [] default */ }
+}
+async function saveSeats(){ try{ await window.storage.set('seats', JSON.stringify(SEATS), true); }catch(e){} }
+async function saveRequests(){ try{ await window.storage.set('requests', JSON.stringify(REQUESTS), true); }catch(e){} }
+async function saveLog(){ try{ await window.storage.set('log', JSON.stringify(LOG), true); }catch(e){} }
+async function saveLinks(){ try{ await window.storage.set('links', JSON.stringify(LINKS), true); }catch(e){} }
+
+function makeToken(){
+  return Array.from({length:10}, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random()*36)]).join('');
+}
+function linkForToken(token){
+  const url = new URL(window.location.href);
+  url.searchParams.set('req', token);
+  return url.toString();
+}
+function getRequestedToken(){
+  const url = new URL(window.location.href);
+  return url.searchParams.get('req');
+}
+
+function pushLog(msg){
+  LOG.unshift({ t: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), msg });
+  LOG = LOG.slice(0, 40);
+  saveLog();
+}
+
+// ---------- derived data ----------
+function holdStats(){
+  const stats = {};
+  for(const h of Object.keys(HOLD_META)) stats[h] = { total:0, assigned:0 };
+  for(const s of SEATS){
+    if(!stats[s.holdName]) stats[s.holdName] = { total:0, assigned:0 };
+    stats[s.holdName].total++;
+    if(s.status === 'ASSIGNED') stats[s.holdName].assigned++;
+  }
+  return stats;
+}
+
+function sectionsForHold(holdName){
+  const bySection = {};
+  for(const s of SEATS){
+    if(s.holdName !== holdName) continue;
+    if(!bySection[s.section]) bySection[s.section] = [];
+    bySection[s.section].push(s);
+  }
+  return bySection;
+}
+
+function assignSeats(holdName, qty){
+  const avail = SEATS.filter(s => s.holdName === holdName && s.status === 'AVAILABLE')
+    .sort((a,b) => (a.section+'').localeCompare(b.section+'') || a.row-b.row || a.seat-b.seat);
+  if(avail.length < qty) return null;
+  const chosen = avail.slice(0, qty);
+  chosen.forEach(s => { s.status = 'ASSIGNED'; });
+  return chosen;
+}
+
+// ---------- state ----------
+let VIEW = 'overview';
+let TOAST = null;
+let toastTimer = null;
+
+// Transient, in-memory only — ticketor's in-progress seat picks for pending requests.
+// Keyed by request id. Not persisted: a reload resets any unfinished picks.
+let PENDING_HOLD_CHOICE = {};
+let PENDING_SEAT_CHOICE = {};
+
+function showToast(text){
+  TOAST = text;
+  render();
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { TOAST = null; render(); }, 3200);
+}
+
+// ---------- render ----------
+function el(tag, attrs={}, ...children){
+  const node = document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs)){
+    if(k === 'class') node.className = v;
+    else if(k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
+    else if(k === 'html') node.innerHTML = v;
+    else node.setAttribute(k, v);
+  }
+  for(const c of children){
+    if(c == null) continue;
+    node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return node;
+}
+
+function renderSidebar(){
+  const pendingCount = REQUESTS.filter(r => r.status === 'PENDING').length;
+  const unsentConfirmCount = REQUESTS.filter(r => r.status === 'APPROVED' && !r.emailSent).length;
+  const items = [
+    ['overview', 'Hold Overview'],
+    ['dashboard', 'Ticketor Dashboard'],
+    ['request', 'Submit Hold Request'],
+    ['confirmations', 'Confirmations'],
+  ];
+  const nav = el('div', {class:'nav'});
+  items.forEach(([key,label]) => {
+    const btn = el('button', {
+      class: VIEW === key ? 'active' : '',
+      onclick: () => { VIEW = key; render(); }
+    }, el('span',{class:'dot'}), label);
+    if(key === 'dashboard' && pendingCount > 0){
+      btn.appendChild(el('span', {class:'pending-badge'}, String(pendingCount)));
+    }
+    if(key === 'confirmations' && unsentConfirmCount > 0){
+      btn.appendChild(el('span', {class:'pending-badge'}, String(unsentConfirmCount)));
+    }
+    nav.appendChild(btn);
+  });
+
+  return el('div', {class:'sidebar'},
+    el('div', {class:'brand'},
+      el('div', {class:'mark'}, 'HOLDS'),
+      el('div', {class:'sub'}, 'Tour hold & seat assignment')
+    ),
+    nav,
+    el('div', {class:'sidebar-foot'},
+      'Prototype — seat data loaded from uploaded inventory file. Payment, Ticketmaster sync and box office dispatch are simulated, not live-connected.'
+    )
+  );
+}
+
+function renderEventbar(){
+  return el('div', {class:'eventbar'},
+    el('div', {},
+      el('h1', {}, EVENT.tour),
+      el('div', {class:'meta'}, `${EVENT.venue} · ${EVENT.datetime}`)
+    )
+  );
+}
+
+function renderTiles(){
+  const stats = holdStats();
+  const wrap = el('div', {class:'tiles'});
+  for(const [holdName, meta] of Object.entries(HOLD_META)){
+    const s = stats[holdName] || {total:0, assigned:0};
+    const remaining = s.total - s.assigned;
+    const pct = s.total ? Math.round((s.assigned/s.total)*100) : 0;
+    wrap.appendChild(
+      el('div', {class:'tile', style:`--c:${meta.colorHex}`},
+        el('div', {class:'name'}, el('span',{},holdName), el('span',{class:'grp'}, meta.group)),
+        el('div', {class:'nums'},
+          el('div', {class:'remaining'}, String(remaining)),
+          el('div', {class:'outof'}, `remaining of ${s.total} · ${meta.label}`)
+        ),
+        el('div', {class:'bar'}, el('div', {class:'bar-fill', style:`width:${pct}%`}))
+      )
+    );
+  }
+  return wrap;
+}
+
+function renderSeatMap(){
+  const wrap = el('div', {class:'seatwrap'});
+  wrap.appendChild(el('h2', {class:'section-title'}, 'Held inventory by section'));
+  const legend = el('div', {class:'legend'});
+  Object.entries(HOLD_META).forEach(([name, meta]) => {
+    legend.appendChild(el('div', {class:'item'},
+      el('span', {class:'sw', style:`background:${meta.colorHex}`}),
+      `${name} — available`
+    ));
+  });
+  legend.appendChild(el('div', {class:'item'},
+    el('span', {class:'sw', style:`background:#777; opacity:0.4`}),
+    'assigned (faded)'
+  ));
+  wrap.appendChild(legend);
+
+  const bySection = {};
+  for(const s of SEATS){
+    if(!bySection[s.section]) bySection[s.section] = [];
+    bySection[s.section].push(s);
+  }
+  const grid = el('div', {class:'section-grid'});
+  Object.keys(bySection).sort().forEach(section => {
+    const seats = bySection[section].sort((a,b)=> a.row-b.row || a.seat-b.seat);
+    const byRow = {};
+    seats.forEach(s => {
+      if(!byRow[s.row]) byRow[s.row] = [];
+      byRow[s.row].push(s);
+    });
+
+    const block = el('div', {class:'section-block'});
+    block.appendChild(el('div', {class:'section-heading'}, `SECTION ${section}`));
+
+    Object.keys(byRow).sort((a,b)=>Number(a)-Number(b)).forEach(rowNum => {
+      const cells = el('div', {class:'seat-cells'});
+      byRow[rowNum].forEach(s => {
+        const color = (HOLD_META[s.holdName] || {}).colorHex || '#777';
+        cells.appendChild(el('div', {
+          class: 'seat-cell' + (s.status==='ASSIGNED' ? ' assigned' : ''),
+          style: `background:${color}`,
+          title: `Sec ${s.section} Row ${s.row} Seat ${s.seat} · ${s.holdName} · ${s.status}`
+        }, String(s.seat)));
+      });
+      block.appendChild(el('div', {class:'section-row'},
+        el('div', {class:'row-label'}, `Row ${rowNum}`),
+        cells
+      ));
+    });
+
+    grid.appendChild(block);
+  });
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+function renderLog(){
+  const wrap = el('div', {class:'log'});
+  wrap.appendChild(el('h2', {class:'section-title'}, 'Activity'));
+  if(LOG.length === 0){
+    wrap.appendChild(el('div', {class:'empty'}, 'No activity yet.'));
+    return wrap;
+  }
+  LOG.slice(0,12).forEach(item => {
+    wrap.appendChild(el('div', {class:'log-item'},
+      el('span', {class:'t'}, item.t),
+      el('span', {html: item.msg})
+    ));
+  });
+  return wrap;
+}
+
+function renderOverview(){
+  const c = el('div', {});
+  c.appendChild(renderTiles());
+  c.appendChild(renderSeatMap());
+  c.appendChild(renderLog());
+  return c;
+}
+
+function renderRequestForm(opts={}){
+  // opts: { lockedHold, guestMode, sourceToken, onSubmitted }
+  const panel = el('div', {class:'panel'});
+  panel.appendChild(el('h2', {class:'section-title'}, opts.guestMode ? `Request tickets — ${EVENT.tour}` : 'Submit a hold request'));
+  if(opts.guestMode){
+    panel.appendChild(el('div', {style:'font-size:13px; color:var(--text-dim); margin:-6px 0 18px 0;'},
+      `${opts.location || 'New Orleans'} · ${EVENT.venue} · ${EVENT.datetime}`
+    ));
+  }
+
+  if(opts.lockedHold){
+    // Guest-link flow: the ticketor already picked the hold when generating the link.
+    const meta = HOLD_META[opts.lockedHold] || {};
+    panel.appendChild(el('div', {class:'field'},
+      el('label', {}, 'Hold group'),
+      el('input', {type:'text', value: `${meta.label || opts.lockedHold}`, disabled:'disabled'})
+    ));
+  } else {
+    // Direct internal submission: the requestor does not choose a hold group.
+    // A ticketor assigns it when the request is reviewed in the Dashboard.
+    panel.appendChild(el('div', {class:'field'},
+      el('label', {}, 'Hold group'),
+      el('input', {type:'text', value: 'Assigned by ticketor at review', disabled:'disabled'}),
+      el('div', {class:'hint'}, 'The requestor can\'t pick a hold group here — a ticketor assigns one when approving this request.')
+    ));
+  }
+
+  panel.appendChild(el('div', {class:'row2'},
+    el('div', {class:'field'}, el('label',{},'Guest full name'), el('input',{id:'f-name', type:'text', placeholder:'Jane Doe'})),
+    el('div', {class:'field'}, el('label',{},'Buyer/Contact email'), el('input',{id:'f-email', type:'email', placeholder:'jane@example.com'}))
+  ));
+
+  panel.appendChild(el('div', {class:'field'},
+    el('label', {}, 'Ticketmaster account email (tickets transfer here)'),
+    el('input', {id:'f-tm', type:'email', placeholder:'jane.tm@example.com'})
+  ));
+
+  panel.appendChild(el('div', {class:'field'},
+    el('label', {}, opts.maxQty ? `Quantity requested (up to ${opts.maxQty})` : 'Quantity requested'),
+    el('input',{id:'f-qty', type:'number', min:'1', max:String(opts.maxQty || 12), value: String(Math.min(2, opts.maxQty || 2))})
+  ));
+
+  // Direct internal submissions always collect payment info since the ticketor decides
+  // Paid vs Comp later, at review. Guest-link submissions only collect it when the
+  // ticketor already marked that link "Paid" when generating it.
+  const showPayment = !opts.guestMode || opts.orderType === 'PAID';
+  if(showPayment){
+    panel.appendChild(el('h2', {class:'section-title', style:'font-size:15px; margin-top:20px;'}, 'Payment details'));
+    panel.appendChild(el('div', {class:'hint', style:'margin-top:-6px; margin-bottom:12px;'},
+      opts.guestMode
+        ? 'Demo fields only — nothing here is transmitted to a card network.'
+        : 'Demo fields only — nothing here is transmitted to a card network. The ticketor decides at review whether this order is actually charged or marked comp.'
+    ));
+    panel.appendChild(el('div', {class:'field'},
+      el('label', {}, 'Name on card'),
+      el('input', {id:'f-cc-name', type:'text', autocomplete:'off', placeholder:'Jane Doe'})
+    ));
+    panel.appendChild(el('div', {class:'row2'},
+      el('div', {class:'field'}, el('label',{},'Card number'), el('input',{id:'f-cc-num', type:'text', autocomplete:'off', inputmode:'numeric', maxlength:'19', placeholder:'4111 1111 1111 1111'})),
+      el('div', {class:'row2'},
+        el('div', {class:'field'}, el('label',{},'Exp'), el('input',{id:'f-cc-exp', type:'text', autocomplete:'off', placeholder:'MM/YY'})),
+        el('div', {class:'field'}, el('label',{},'CVV'), el('input',{id:'f-cc-cvv', type:'text', autocomplete:'off', inputmode:'numeric', maxlength:'4', placeholder:'123'}))
+      )
+    ));
+  } else if(opts.guestMode){
+    panel.appendChild(el('div', {class:'hint', style:'margin-top:4px;'},
+      'This invite is marked Comp — no payment is collected.'
+    ));
+  }
+
+  panel.appendChild(el('div', {class:'checkfield'},
+    el('input', {id:'f-ada', type:'checkbox'}),
+    el('label', {for:'f-ada'}, 'Guest requires ADA-accessible seating')
+  ));
+
+  const errorBox = el('div', {class:'hint', style:'color:var(--danger); display:none'});
+  panel.appendChild(errorBox);
+
+  panel.appendChild(el('button', {class:'btn', onclick: async () => {
+    // Hold is only known up front for the guest-link flow (ticketor picked it when
+    // generating the link). Direct internal submissions leave it unset — a ticketor
+    // assigns the hold group when the request is reviewed.
+    const hold = opts.lockedHold || null;
+    const name = panel.querySelector('#f-name').value.trim();
+    const email = panel.querySelector('#f-email').value.trim();
+    const tm = panel.querySelector('#f-tm').value.trim();
+    const qty = parseInt(panel.querySelector('#f-qty').value, 10);
+    // Payment fields only exist in the DOM when showPayment was true above.
+    const ccNameEl = panel.querySelector('#f-cc-name');
+    const ccName = ccNameEl ? ccNameEl.value.trim() : '';
+    const ccNum = (panel.querySelector('#f-cc-num')?.value || '').replace(/\s+/g, '');
+    const ccExp = panel.querySelector('#f-cc-exp')?.value.trim() || '';
+    // Only keep a masked reference in memory/storage — never the full number.
+    const pay = ccNum ? `${ccName || 'Card on file'} · •••• ${ccNum.slice(-4)} · exp ${ccExp || '—'}`
+      : (opts.guestMode && opts.orderType === 'COMP' ? 'Comp — no payment collected' : '');
+    const ada = panel.querySelector('#f-ada').checked;
+
+    if(!name || !email || !tm || !qty || qty < 1){
+      errorBox.textContent = 'Please fill in guest name, contact email, TM email, and a valid quantity.';
+      errorBox.style.display = 'block';
+      return;
+    }
+    if(opts.maxQty && qty > opts.maxQty){
+      errorBox.textContent = `This link allows up to ${opts.maxQty} tickets. Lower the quantity to continue.`;
+      errorBox.style.display = 'block';
+      return;
+    }
+    if(hold){
+      const s = holdStats()[hold] || {total:0, assigned:0};
+      const remaining = s.total - s.assigned;
+      if(qty > remaining){
+        errorBox.textContent = `This hold can't fit that quantity right now. Lower the quantity or choose another hold.`;
+        errorBox.style.display = 'block';
+        return;
+      }
+    }
+    errorBox.style.display = 'none';
+
+    const req = {
+      id: 'req_' + Date.now(),
+      hold, name, email, tm, qty, pay, ada,
+      // A guest link already carries the ticketor's Paid/Comp call; direct submissions
+      // leave this unset until a ticketor assigns it in the Dashboard.
+      orderType: (opts.guestMode && opts.orderType) ? opts.orderType : null,
+      status: 'PENDING',
+      sourceToken: opts.sourceToken || null,
+      createdAt: new Date().toISOString()
+    };
+    REQUESTS.unshift(req);
+    await saveRequests();
+    pushLog(`<b>${name}</b> requested ${qty} ticket${qty>1?'s':''}${hold ? ` under <b>${hold}</b>` : ' (hold not yet assigned)'}${opts.guestMode ? ' via guest link' : ''}`);
+    if(opts.onSubmitted){
+      opts.onSubmitted(req);
+    } else {
+      showToast(`Request submitted for ${name} — awaiting ticketor review.`);
+      VIEW = 'dashboard';
+      render();
+    }
+  }}, opts.guestMode ? 'Submit request' : 'Submit request'));
+
+  if(!opts.guestMode){
+    panel.appendChild(el('div', {class:'form-foot-note'},
+      'Submitting routes this request to the ticketor queue. Seats are assigned automatically on approval from the next available seats in the chosen hold.'
+    ));
+  }
+
+  return panel;
+}
+
+function renderLinkGenerator(){
+  const panel = el('div', {class:'panel', style:'max-width:100%; margin-bottom:28px;'});
+  panel.appendChild(el('h2', {class:'section-title'}, 'Send a guest request link'));
+  panel.appendChild(el('div', {style:'font-size:13px; color:var(--text-dim); margin-top:-8px; margin-bottom:16px;'},
+    'Generate a one-time link scoped to a hold group and send it to a potential concert goer. They fill in their own details — no ticketor seat counts are shown to them.'
+  ));
+
+  const holdSelect = el('select', {id:'lg-hold'});
+  Object.entries(HOLD_META).forEach(([name, meta]) => {
+    holdSelect.appendChild(el('option', {value:name}, `${name} — ${meta.label}`));
+  });
+
+  const locationSelect = el('select', {id:'lg-location'});
+  SHOW_LOCATIONS.forEach(loc => {
+    locationSelect.appendChild(el('option', {value:loc}, loc));
+  });
+
+  const maxQtySelect = el('select', {id:'lg-maxqty'});
+  [1,2,3,4,5,6,8,10,12].forEach(n => {
+    const opt = el('option', {value:String(n)}, `${n} ticket${n>1?'s':''} max`);
+    if(n === 4) opt.setAttribute('selected','selected');
+    maxQtySelect.appendChild(opt);
+  });
+
+  const orderTypeSelect = el('select', {id:'lg-ordertype'});
+  orderTypeSelect.appendChild(el('option', {value:'PAID'}, 'Paid — guest enters a card'));
+  orderTypeSelect.appendChild(el('option', {value:'COMP'}, 'Comp — no payment collected'));
+
+  panel.appendChild(el('div', {class:'row2'},
+    el('div', {class:'field'}, el('label',{},'Hold group'), holdSelect),
+    el('div', {class:'field'}, el('label',{},'Show location'), locationSelect)
+  ));
+  panel.appendChild(el('div', {class:'row2'},
+    el('div', {class:'field'}, el('label',{},'Number of tickets'), maxQtySelect),
+    el('div', {class:'field'}, el('label',{},'Order type'), orderTypeSelect)
+  ));
+  panel.appendChild(el('div', {class:'field'},
+    el('label',{},'Note (internal only, optional)'), el('input',{id:'lg-note', type:'text', placeholder:'e.g. Jane D. — CAA plus-one'}))
+  );
+
+  const linkOut = el('div', {style:'display:none;'});
+  panel.appendChild(linkOut);
+
+  panel.appendChild(el('button', {class:'btn', onclick: async () => {
+    const hold = panel.querySelector('#lg-hold').value;
+    const location = panel.querySelector('#lg-location').value;
+    const maxQty = parseInt(panel.querySelector('#lg-maxqty').value, 10);
+    const orderType = panel.querySelector('#lg-ordertype').value;
+    const note = panel.querySelector('#lg-note').value.trim();
+    const token = makeToken();
+    LINKS.unshift({ token, hold, location, maxQty, orderType, note, createdAt: new Date().toISOString(), used: false });
+    await saveLinks();
+    pushLog(`Generated guest request link for <b>${hold}</b> — up to ${maxQty} tickets · ${orderType}${note ? ' — ' + note : ''}`);
+    render();
+  }}, 'Generate link'));
+
+  // recent links list
+  if(LINKS.length){
+    panel.appendChild(el('h2', {class:'section-title', style:'margin-top:24px; font-size:16px;'}, 'Recent links'));
+    const list = el('div', {class:'queue'});
+    LINKS.slice(0,6).forEach(l => {
+      const meta = HOLD_META[l.hold] || {};
+      const url = linkForToken(l.token);
+      const row = el('div', {class:'req-card'},
+        el('div', {class:'req-top'},
+          el('div', {},
+            el('div', {class:'req-name'}, l.note || '(no note)'),
+            el('div', {style:'font-size:12px; color:var(--text-dim); margin-top:2px;'},
+              `${l.location || 'New Orleans'} · up to ${l.maxQty || 4} tickets · ${l.orderType || 'PAID'}`),
+            el('div', {style:'font-size:12px; color:var(--text-dim); margin-top:2px; word-break:break-all;'}, url)
+          ),
+          el('span', {class:'req-chip', style:`background:${meta.colorHex || '#777'}`}, l.hold)
+        ),
+        el('div', {class:'req-actions'},
+          el('button', {class:'btn ghost', onclick: () => {
+            navigator.clipboard?.writeText(url).catch(()=>{});
+            showToast('Link copied to clipboard.');
+          }}, 'Copy link'),
+          l.used ? el('span', {style:'font-size:12px; color:var(--text-dim); align-self:center;'}, 'Used') : null
+        )
+      );
+      list.appendChild(row);
+    });
+    panel.appendChild(list);
+  }
+
+  return panel;
+}
+
+function renderConfirmations(){
+  const wrap = el('div', {});
+  wrap.appendChild(el('h2', {class:'section-title'}, 'Confirmation emails'));
+  wrap.appendChild(el('div', {style:'font-size:13px; color:var(--text-dim); margin-top:-8px; margin-bottom:18px;'},
+    'Approved requests land here. Sending is simulated — no real email goes out — but it logs the action and marks the guest as notified.'
+  ));
+
+  const confirmed = REQUESTS.filter(r => r.status === 'APPROVED');
+  if(confirmed.length === 0){
+    wrap.appendChild(el('div', {class:'empty'}, 'No confirmed orders yet. Approve a request in the Ticketor Dashboard first.'));
+    return wrap;
+  }
+
+  const unsent = confirmed.filter(r => !r.emailSent);
+  if(unsent.length > 0){
+    wrap.appendChild(el('button', {class:'btn', style:'margin-bottom:18px;', onclick: async () => {
+      unsent.forEach(r => { r.emailSent = true; r.emailSentAt = new Date().toISOString(); });
+      await saveRequests();
+      pushLog(`Sent ${unsent.length} confirmation email${unsent.length>1?'s':''} (simulated).`);
+      showToast(`Sent ${unsent.length} confirmation email${unsent.length>1?'s':''}.`);
+      render();
+    }}, `Send all (${unsent.length}) pending confirmations`));
+  }
+
+  const list = el('div', {class:'queue'});
+  confirmed.forEach(req => {
+    const meta = HOLD_META[req.hold] || {};
+    list.appendChild(el('div', {class:'req-card'},
+      el('div', {class:'req-top'},
+        el('div', {},
+          el('div', {class:'req-name'}, req.name),
+          el('div', {style:'font-size:12.5px; color:var(--text-dim); margin-top:2px;'}, req.email)
+        ),
+        el('span', {class:'req-chip', style:`background:${meta.colorHex || '#777'}`}, req.hold || '—')
+      ),
+      el('div', {class:'req-grid'},
+        el('div', {}, el('span',{},'Seats'), (req.seats||[]).join(', ') || '—'),
+        el('div', {}, el('span',{},'Order type'), req.orderType || '—'),
+        el('div', {}, el('span',{},'Notified'), req.emailSent ? `Yes · ${new Date(req.emailSentAt).toLocaleString()}` : 'Not yet'),
+        el('div', {}, el('span',{},'TM account'), req.tm)
+      ),
+      el('div', {class:'req-actions'},
+        el('button', {class: req.emailSent ? 'btn ghost' : 'btn', onclick: async () => {
+          req.emailSent = true;
+          req.emailSentAt = new Date().toISOString();
+          await saveRequests();
+          pushLog(`Sent confirmation email to <b>${req.name}</b> (${req.email}) — simulated.`);
+          showToast(`Confirmation sent to ${req.name}.`);
+          render();
+        }}, req.emailSent ? 'Resend confirmation' : 'Send confirmation email')
+      )
+    ));
+  });
+  wrap.appendChild(list);
+  return wrap;
+}
+
+function renderDashboard(){
+  const wrap = el('div', {});
+  wrap.appendChild(renderLinkGenerator());
+  wrap.appendChild(el('h2', {class:'section-title'}, 'Pending requests'));
+  const pending = REQUESTS.filter(r => r.status === 'PENDING');
+  const queue = el('div', {class:'queue'});
+  if(pending.length === 0){
+    queue.appendChild(el('div', {class:'empty'}, 'No pending requests. Submit one from the request form to see it here.'));
+  }
+  pending.forEach(req => {
+    const needsHoldPick = !req.hold;
+    const effectiveHold = req.hold || PENDING_HOLD_CHOICE[req.id] || '';
+    const meta = HOLD_META[effectiveHold] || {};
+
+    let holdPicker = null;
+    if(needsHoldPick){
+      holdPicker = el('select', {id:`hp-${req.id}`});
+      holdPicker.appendChild(el('option', {value:''}, 'Choose a hold group…'));
+      Object.entries(HOLD_META).forEach(([name, m]) => {
+        const opt = el('option', {value:name}, `${name} — ${m.label}`);
+        if(name === effectiveHold) opt.setAttribute('selected', 'selected');
+        holdPicker.appendChild(opt);
+      });
+      holdPicker.addEventListener('change', () => {
+        PENDING_HOLD_CHOICE[req.id] = holdPicker.value;
+        PENDING_SEAT_CHOICE[req.id] = []; // hold changed — picks no longer valid
+        render();
+      });
+    }
+
+    const needsOrderTypePick = !req.orderType;
+    let orderTypePicker = null;
+    if(needsOrderTypePick){
+      orderTypePicker = el('select', {id:`ot-${req.id}`});
+      orderTypePicker.appendChild(el('option', {value:''}, 'Choose order type…'));
+      orderTypePicker.appendChild(el('option', {value:'PAID'}, 'Paid — charge the card on file'));
+      orderTypePicker.appendChild(el('option', {value:'COMP'}, 'Comp — no charge'));
+    }
+
+    const reqGridFields = [
+      el('div', {}, el('span',{},'TM account'), req.tm),
+      el('div', {}, el('span',{},'Quantity'), String(req.qty)),
+      el('div', {}, el('span',{},'ADA needed'), req.ada ? 'Yes' : 'No'),
+      el('div', {}, el('span',{},'Payment ref'), req.pay || (req.orderType === 'COMP' ? 'Comp' : '—'))
+    ];
+
+    // --- Manual seat picker: the ticketor clicks exactly req.qty available seats ---
+    const picked = PENDING_SEAT_CHOICE[req.id] || [];
+    let seatPickerBlock = null;
+    if(effectiveHold){
+      const available = SEATS.filter(s => s.holdName === effectiveHold && s.status === 'AVAILABLE')
+        .sort((a,b) => (a.section+'').localeCompare(b.section+'') || a.row-b.row || a.seat-b.seat);
+      const grid = el('div', {class:'seat-pick-grid'});
+      if(available.length === 0){
+        grid.appendChild(el('div', {class:'seat-pick-empty'}, `No available seats remain in ${effectiveHold}.`));
+      }
+      available.forEach(s => {
+        const isSelected = picked.includes(s.id);
+        const color = meta.colorHex || '#777';
+        const btn = el('button', {
+          type:'button',
+          class: 'seat-pick' + (isSelected ? ' selected' : ''),
+          style: `background:${color}`,
+          title: `Sec ${s.section} Row ${s.row} Seat ${s.seat}`
+        }, `${s.section}·${s.row}·${s.seat}`);
+        btn.addEventListener('click', () => {
+          const current = PENDING_SEAT_CHOICE[req.id] || [];
+          if(current.includes(s.id)){
+            PENDING_SEAT_CHOICE[req.id] = current.filter(id => id !== s.id);
+          } else {
+            if(current.length >= req.qty){
+              showToast(`You've already picked ${req.qty} seat${req.qty>1?'s':''} for this request.`);
+              return;
+            }
+            PENDING_SEAT_CHOICE[req.id] = [...current, s.id];
+          }
+          render();
+        });
+        grid.appendChild(btn);
+      });
+      const isReady = picked.length === req.qty;
+      seatPickerBlock = el('div', {},
+        el('label', {}, `Pick exact seats in ${effectiveHold}`),
+        el('div', {class:'seat-pick-wrap'}, grid),
+        el('div', {class:'seat-pick-counter' + (isReady ? ' ready' : '')},
+          `${picked.length} of ${req.qty} seats picked${isReady ? ' — ready to assign' : ''}`)
+      );
+    }
+
+    const card = el('div', {class:'req-card'},
+      el('div', {class:'req-top'},
+        el('div', {},
+          el('div', {class:'req-name'}, req.name),
+          el('div', {style:'font-size:12.5px; color:var(--text-dim); margin-top:2px;'}, req.email)
+        ),
+        req.hold
+          ? el('span', {class:'req-chip', style:`background:${meta.colorHex || '#777'}`}, req.hold)
+          : el('span', {class:'req-chip', style:'background:#555'}, 'Unassigned')
+      ),
+      el('div', {class:'req-grid'}, ...reqGridFields),
+      el('div', {class:'row2', style:'margin-top:4px;'},
+        needsHoldPick ? el('div', {class:'field'},
+          el('label', {}, 'Assign hold group (requestor did not choose one)'),
+          holdPicker
+        ) : el('div', {}),
+        needsOrderTypePick ? el('div', {class:'field'},
+          el('label', {}, 'Order type'),
+          orderTypePicker
+        ) : el('div', {class:'field'},
+          el('label', {}, 'Order type'),
+          el('input', {type:'text', value: req.orderType === 'PAID' ? 'Paid (set on guest link)' : 'Comp (set on guest link)', disabled:'disabled'})
+        )
+      ),
+      seatPickerBlock ? el('div', {class:'field', style:'margin-top:6px;'}, seatPickerBlock) : null,
+      el('div', {class:'req-actions'},
+        el('button', {class:'btn', onclick: async () => {
+          const hold = req.hold || (holdPicker ? holdPicker.value : '');
+          const orderType = req.orderType || (orderTypePicker ? orderTypePicker.value : '');
+          const chosenSeatIds = PENDING_SEAT_CHOICE[req.id] || [];
+          if(!hold){
+            showToast('Pick a hold group before assigning seats.');
+            return;
+          }
+          if(!orderType){
+            showToast('Choose whether this order is Paid or Comp before accepting.');
+            return;
+          }
+          if(chosenSeatIds.length !== req.qty){
+            showToast(`Pick exactly ${req.qty} seat${req.qty>1?'s':''} before assigning.`);
+            return;
+          }
+          const seatObjs = chosenSeatIds.map(id => SEATS.find(s => s.id === id)).filter(Boolean);
+          if(seatObjs.length !== chosenSeatIds.length || seatObjs.some(s => s.status !== 'AVAILABLE')){
+            showToast('One or more picked seats are no longer available. Pick again.');
+            PENDING_SEAT_CHOICE[req.id] = [];
+            render();
+            return;
+          }
+          seatObjs.forEach(s => { s.status = 'ASSIGNED'; });
+          req.hold = hold;
+          req.orderType = orderType;
+          req.status = 'APPROVED';
+          req.seats = seatObjs.map(s => `Sec ${s.section} Row ${s.row} Seat ${s.seat}`);
+          req.emailSent = false;
+          delete PENDING_HOLD_CHOICE[req.id];
+          delete PENDING_SEAT_CHOICE[req.id];
+          await saveSeats();
+          await saveRequests();
+          const seatList = req.seats.join(', ');
+          pushLog(`Approved <b>${req.name}</b> — assigned <b>${hold}</b> (${orderType}): ${seatList}. Simulated Ticketmaster sync + box office dispatch sent.`);
+          showToast(`Seats assigned: ${seatList}`);
+          render();
+        }}, 'Assign picked seats'),
+        el('button', {class:'btn reject', onclick: async () => {
+          req.status = 'REJECTED';
+          delete PENDING_HOLD_CHOICE[req.id];
+          delete PENDING_SEAT_CHOICE[req.id];
+          await saveRequests();
+          pushLog(`Rejected request from <b>${req.name}</b> (${req.hold || 'unassigned'}, qty ${req.qty})`);
+          showToast(`Request from ${req.name} rejected.`);
+          render();
+        }}, 'Reject')
+      )
+    );
+    queue.appendChild(card);
+  });
+  wrap.appendChild(queue);
+
+  const resolved = REQUESTS.filter(r => r.status !== 'PENDING').slice(0, 8);
+  if(resolved.length){
+    wrap.appendChild(el('h2', {class:'section-title', style:'margin-top:28px'}, 'Recently resolved'));
+    const rlist = el('div', {class:'queue'});
+    resolved.forEach(req => {
+      const chipColor = req.status === 'APPROVED' ? (HOLD_META[req.hold]||{}).colorHex : '#555';
+      rlist.appendChild(el('div', {class:'req-card'},
+        el('div', {class:'req-top'},
+          el('div', {},
+            el('div', {class:'req-name'}, req.name),
+            el('div', {style:'font-size:12.5px; color:var(--text-dim); margin-top:2px;'},
+              req.status === 'APPROVED' ? `Seats: ${(req.seats||[]).join(', ')}${req.orderType ? ' · ' + req.orderType : ''}` : 'No seats assigned')
+          ),
+          el('span', {class:'req-chip', style:`background:${chipColor}`}, req.status)
+        )
+      ));
+    });
+    wrap.appendChild(rlist);
+  }
+
+  return wrap;
+}
+
+let GUEST_TOKEN = null;
+let GUEST_SUBMITTED = false;
+
+function renderGuestPage(){
+  const token = GUEST_TOKEN;
+  const link = LINKS.find(l => l.token === token);
+  const wrap = el('div', {style:'max-width:680px; margin:48px auto; padding:0 20px;'});
+
+  if(!link){
+    wrap.appendChild(el('div', {class:'panel'},
+      el('h2', {class:'section-title'}, 'Link not recognized'),
+      el('div', {style:'color:var(--text-dim); font-size:14px;'},
+        'This request link isn\'t valid in this session. Ask your ticketor to resend it.')
+    ));
+    return wrap;
+  }
+  if(GUEST_SUBMITTED){
+    wrap.appendChild(el('div', {class:'panel'},
+      el('h2', {class:'section-title'}, 'Request submitted'),
+      el('div', {style:'color:var(--text-dim); font-size:14px; line-height:1.6;'},
+        'Thanks — your request has been sent to the tour\'s ticketor for review. You\'ll be contacted at the email you provided once it\'s been processed.')
+    ));
+    return wrap;
+  }
+  wrap.appendChild(renderRequestForm({
+    lockedHold: link.hold,
+    guestMode: true,
+    sourceToken: token,
+    maxQty: link.maxQty || 4,
+    location: link.location || 'New Orleans',
+    orderType: link.orderType || 'PAID',
+    onSubmitted: async () => {
+      link.used = true;
+      await saveLinks();
+      GUEST_SUBMITTED = true;
+      render();
+    }
+  }));
+  return wrap;
+}
+
+function render(){
+  const root = document.getElementById('root');
+  root.innerHTML = '';
+
+  if(GUEST_TOKEN){
+    root.appendChild(renderGuestPage());
+    if(TOAST) root.appendChild(el('div', {class:'toast'}, TOAST));
+    return;
+  }
+
+  const app = el('div', {class:'app'});
+  app.appendChild(renderSidebar());
+  const main = el('div', {class:'main'});
+  main.appendChild(renderEventbar());
+  if(VIEW === 'overview') main.appendChild(renderOverview());
+  if(VIEW === 'request') main.appendChild(renderRequestForm());
+  if(VIEW === 'dashboard') main.appendChild(renderDashboard());
+  if(VIEW === 'confirmations') main.appendChild(renderConfirmations());
+  app.appendChild(main);
+  root.appendChild(app);
+  if(TOAST){
+    root.appendChild(el('div', {class:'toast'}, TOAST));
+  }
+}
+
+const SEED_SEATS = `[{"section": "113", "row": 29, "seat": 5, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 0, "status": "AVAILABLE"}, {"section": "113", "row": 29, "seat": 6, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 1, "status": "AVAILABLE"}, {"section": "113", "row": 29, "seat": 7, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 2, "status": "AVAILABLE"}, {"section": "113", "row": 29, "seat": 8, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 3, "status": "AVAILABLE"}, {"section": "113", "row": 29, "seat": 9, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 4, "status": "AVAILABLE"}, {"section": "113", "row": 29, "seat": 10, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 5, "status": "AVAILABLE"}, {"section": "115", "row": 13, "seat": 17, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 6, "status": "AVAILABLE"}, {"section": "115", "row": 13, "seat": 18, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 7, "status": "AVAILABLE"}, {"section": "115", "row": 13, "seat": 19, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 8, "status": "AVAILABLE"}, {"section": "115", "row": 13, "seat": 20, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 9, "status": "AVAILABLE"}, {"section": "115", "row": 13, "seat": 21, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 10, "status": "AVAILABLE"}, {"section": "115", "row": 13, "seat": 22, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 11, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 1, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 12, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 2, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 13, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 3, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 14, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 4, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 15, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 5, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 16, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 6, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 17, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 7, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 18, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 8, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 19, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 9, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 20, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 10, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 21, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 11, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 22, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 12, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 23, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 13, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 24, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 14, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 25, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 15, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 26, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 16, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 27, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 17, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 28, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 18, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 29, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 19, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 30, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 20, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 31, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 21, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 32, "status": "AVAILABLE"}, {"section": "115", "row": 15, "seat": 22, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 33, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 1, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 34, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 2, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 35, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 3, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 36, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 4, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 37, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 5, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 38, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 6, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 39, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 7, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 40, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 8, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 41, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 9, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 42, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 10, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 43, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 11, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 44, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 12, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 45, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 13, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 46, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 14, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 47, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 15, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 48, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 16, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 49, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 17, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 50, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 18, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 51, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 19, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 52, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 20, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 53, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 21, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 54, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 22, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 55, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 23, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 56, "status": "AVAILABLE"}, {"section": "116", "row": 11, "seat": 24, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 57, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 1, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 58, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 2, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 59, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 3, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 60, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 4, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 61, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 5, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 62, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 6, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 63, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 7, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 64, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 8, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 65, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 9, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 66, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 10, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 67, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 11, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 68, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 12, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 69, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 13, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 70, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 14, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 71, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 15, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 72, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 16, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 73, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 17, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 74, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 18, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 75, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 19, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 76, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 20, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 77, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 21, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 78, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 22, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 79, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 23, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 80, "status": "AVAILABLE"}, {"section": "116", "row": 13, "seat": 24, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 81, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 1, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 82, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 2, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 83, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 3, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 84, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 4, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 85, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 5, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 86, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 6, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 87, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 7, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 88, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 8, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 89, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 9, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 90, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 10, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 91, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 11, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 92, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 12, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 93, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 13, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 94, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 14, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 95, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 15, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 96, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 16, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 97, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 17, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 98, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 18, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 99, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 19, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 100, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 20, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 101, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 21, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 102, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 22, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 103, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 23, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 104, "status": "AVAILABLE"}, {"section": "116", "row": 15, "seat": 24, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 105, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 1, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 106, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 2, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 107, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 3, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 108, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 4, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 109, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 5, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 110, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 6, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 111, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 7, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 112, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 8, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 113, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 9, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 114, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 10, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 115, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 11, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 116, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 12, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 117, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 13, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 118, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 14, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 119, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 15, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 120, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 16, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 121, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 17, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 122, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 18, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 123, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 19, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 124, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 20, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 125, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 21, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 126, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 22, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 127, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 23, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 128, "status": "AVAILABLE"}, {"section": "140", "row": 18, "seat": 24, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 129, "status": "AVAILABLE"}, {"section": "141", "row": 11, "seat": 15, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 130, "status": "AVAILABLE"}, {"section": "141", "row": 11, "seat": 16, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 131, "status": "AVAILABLE"}, {"section": "141", "row": 11, "seat": 17, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 132, "status": "AVAILABLE"}, {"section": "141", "row": 11, "seat": 18, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 133, "status": "AVAILABLE"}, {"section": "141", "row": 11, "seat": 19, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 134, "status": "AVAILABLE"}, {"section": "141", "row": 11, "seat": 20, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 135, "status": "AVAILABLE"}, {"section": "141", "row": 11, "seat": 21, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 136, "status": "AVAILABLE"}, {"section": "141", "row": 11, "seat": 22, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 137, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 1, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 138, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 2, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 139, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 3, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 140, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 4, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 141, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 5, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 142, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 6, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 143, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 7, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 144, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 8, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 145, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 9, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 146, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 10, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 147, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 11, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 148, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 12, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 149, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 13, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 150, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 14, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 151, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 15, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 152, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 16, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 153, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 17, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 154, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 18, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 155, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 19, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 156, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 20, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 157, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 21, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 158, "status": "AVAILABLE"}, {"section": "141", "row": 18, "seat": 22, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 159, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 1, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 160, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 2, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 161, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 3, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 162, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 4, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 163, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 5, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 164, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 6, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 165, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 7, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 166, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 8, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 167, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 9, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 168, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 10, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 169, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 11, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 170, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 12, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 171, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 13, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 172, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 14, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 173, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 15, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 174, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 16, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 175, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 17, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 176, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 18, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 177, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 19, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 178, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 20, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 179, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 21, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 180, "status": "AVAILABLE"}, {"section": "142", "row": 15, "seat": 22, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 181, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 9, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 182, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 10, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 183, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 11, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 184, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 12, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 185, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 13, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 186, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 14, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 187, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 15, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 188, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 16, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 189, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 17, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 190, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 18, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 191, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 19, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 192, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 20, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 193, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 21, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 194, "status": "AVAILABLE"}, {"section": "142", "row": 17, "seat": 22, "priceValue": 343.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 5, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 195, "status": "AVAILABLE"}, {"section": "143", "row": 29, "seat": 9, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 196, "status": "AVAILABLE"}, {"section": "143", "row": 29, "seat": 10, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 197, "status": "AVAILABLE"}, {"section": "143", "row": 29, "seat": 11, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 198, "status": "AVAILABLE"}, {"section": "143", "row": 29, "seat": 12, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 199, "status": "AVAILABLE"}, {"section": "143", "row": 29, "seat": 13, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 200, "status": "AVAILABLE"}, {"section": "143", "row": 29, "seat": 14, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 201, "status": "AVAILABLE"}, {"section": "143", "row": 29, "seat": 15, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 202, "status": "AVAILABLE"}, {"section": "143", "row": 29, "seat": 16, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 203, "status": "AVAILABLE"}, {"section": "143", "row": 29, "seat": 17, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 204, "status": "AVAILABLE"}, {"section": "143", "row": 29, "seat": 18, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 205, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 5, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 206, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 6, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 207, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 7, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 208, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 8, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 209, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 9, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 210, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 10, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 211, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 11, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 212, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 12, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 213, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 13, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 214, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 14, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 215, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 15, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 216, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 16, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 217, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 17, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 218, "status": "AVAILABLE"}, {"section": "143", "row": 33, "seat": 18, "priceValue": 263.5, "capacity": 1, "priceLevelName": "PLAZA", "priceLevel": 6, "holdGroup": "D-LN", "holdName": "CAAHOLD", "accessible": "No Accessible Attribute", "id": 219, "status": "AVAILABLE"}, {"section": "BARSTL", "row": 1, "seat": 18, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 220, "status": "AVAILABLE"}, {"section": "BARSTL", "row": 1, "seat": 19, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 221, "status": "AVAILABLE"}, {"section": "BARSTL", "row": 1, "seat": 20, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 222, "status": "AVAILABLE"}, {"section": "BARSTL", "row": 1, "seat": 21, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 223, "status": "AVAILABLE"}, {"section": "BARSTL", "row": 1, "seat": 22, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 224, "status": "AVAILABLE"}, {"section": "BARSTL", "row": 1, "seat": 23, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 225, "status": "AVAILABLE"}, {"section": "C", "row": 11, "seat": 20, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 226, "status": "AVAILABLE"}, {"section": "C", "row": 11, "seat": 19, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 227, "status": "AVAILABLE"}, {"section": "C", "row": 11, "seat": 18, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 228, "status": "AVAILABLE"}, {"section": "C", "row": 11, "seat": 17, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 229, "status": "AVAILABLE"}, {"section": "C", "row": 11, "seat": 16, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 230, "status": "AVAILABLE"}, {"section": "C", "row": 11, "seat": 15, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 231, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 18, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 232, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 17, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 233, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 16, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 234, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 15, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 235, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 14, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 236, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 13, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 237, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 12, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 238, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 11, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 239, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 10, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 240, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 9, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 241, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 8, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 242, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 7, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 243, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 6, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 244, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 5, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 245, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 4, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 246, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 3, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 247, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 2, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 248, "status": "AVAILABLE"}, {"section": "C", "row": 12, "seat": 1, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 249, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 1, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 250, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 2, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 251, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 3, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 252, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 4, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 253, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 5, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 254, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 6, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 255, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 7, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 256, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 8, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 257, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 9, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 258, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 10, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 259, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 11, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 260, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 12, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 261, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 13, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 262, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 14, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 263, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 15, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 264, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 16, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 265, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 17, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 266, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 18, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 267, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 19, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 268, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 20, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 269, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 21, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 270, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 22, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 271, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 23, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 272, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 24, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 273, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 25, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 274, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 26, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 275, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 27, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 276, "status": "AVAILABLE"}, {"section": "G", "row": 11, "seat": 28, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 277, "status": "AVAILABLE"}, {"section": "G", "row": 12, "seat": 1, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 278, "status": "AVAILABLE"}, {"section": "G", "row": 12, "seat": 2, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 279, "status": "AVAILABLE"}, {"section": "G", "row": 12, "seat": 3, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 280, "status": "AVAILABLE"}, {"section": "G", "row": 12, "seat": 4, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 281, "status": "AVAILABLE"}, {"section": "G", "row": 12, "seat": 5, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 282, "status": "AVAILABLE"}, {"section": "G", "row": 12, "seat": 6, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 283, "status": "AVAILABLE"}, {"section": "G", "row": 12, "seat": 7, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 284, "status": "AVAILABLE"}, {"section": "G", "row": 12, "seat": 8, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 285, "status": "AVAILABLE"}, {"section": "G", "row": 12, "seat": 9, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 286, "status": "AVAILABLE"}, {"section": "G", "row": 12, "seat": 10, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 287, "status": "AVAILABLE"}, {"section": "G", "row": 12, "seat": 11, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 288, "status": "AVAILABLE"}, {"section": "G", "row": 12, "seat": 12, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 289, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 1, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 290, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 2, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 291, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 3, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 292, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 4, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 293, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 5, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 294, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 6, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 295, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 7, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 296, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 8, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 297, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 9, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 298, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 10, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 299, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 11, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 300, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 12, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 301, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 13, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 302, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 14, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 303, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 15, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 304, "status": "AVAILABLE"}, {"section": "H", "row": 9, "seat": 16, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 305, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 1, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 306, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 2, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 307, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 3, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 308, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 4, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 309, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 5, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 310, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 6, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 311, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 7, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 312, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 8, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 313, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 9, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 314, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 10, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 315, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 11, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 316, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 12, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 317, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 13, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 318, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 14, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 319, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 15, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 320, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 16, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 321, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 17, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 322, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 18, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 323, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 19, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 324, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 20, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 325, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 21, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 326, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 22, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 327, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 23, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 328, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 24, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 329, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 25, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 330, "status": "AVAILABLE"}, {"section": "J", "row": 8, "seat": 26, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 331, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 1, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 332, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 2, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 333, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 3, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 334, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 4, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 335, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 5, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 336, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 6, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 337, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 7, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 338, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 8, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 339, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 9, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 340, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 10, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 341, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 11, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 342, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 12, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 343, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 13, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 344, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 14, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 345, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 15, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 346, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 16, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 347, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 17, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 348, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 18, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 349, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 19, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 350, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 20, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 351, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 21, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 352, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 22, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 353, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 23, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 354, "status": "AVAILABLE"}, {"section": "J", "row": 9, "seat": 24, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 355, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 1, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 356, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 2, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 357, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 3, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 358, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 4, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 359, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 5, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 360, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 6, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 361, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 7, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 362, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 8, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 363, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 9, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 364, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 10, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 365, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 11, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 366, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 12, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 367, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 13, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 368, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 14, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 369, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 15, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 370, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 16, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 371, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 17, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 372, "status": "AVAILABLE"}, {"section": "J", "row": 11, "seat": 18, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 373, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 1, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 374, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 2, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 375, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 3, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 376, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 4, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 377, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 5, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 378, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 6, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 379, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 7, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 380, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 8, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 381, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 9, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 382, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 10, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 383, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 11, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 384, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 12, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 385, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 13, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 386, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 14, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 387, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 15, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 388, "status": "AVAILABLE"}, {"section": "J", "row": 12, "seat": 16, "priceValue": 263.5, "capacity": 1, "priceLevelName": "FLOOR", "priceLevel": 2, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 389, "status": "AVAILABLE"}, {"section": "TBL1", "row": 1, "seat": 1, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 390, "status": "AVAILABLE"}, {"section": "TBL1", "row": 1, "seat": 2, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 391, "status": "AVAILABLE"}, {"section": "TBL1", "row": 1, "seat": 3, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 392, "status": "AVAILABLE"}, {"section": "TBL1", "row": 1, "seat": 4, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "D-LN", "holdName": "LNTHOLD", "accessible": "No Accessible Attribute", "id": 393, "status": "AVAILABLE"}, {"section": "TBL7", "row": 7, "seat": 1, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 394, "status": "AVAILABLE"}, {"section": "TBL7", "row": 7, "seat": 2, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 395, "status": "AVAILABLE"}, {"section": "TBL7", "row": 7, "seat": 3, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 396, "status": "AVAILABLE"}, {"section": "TBL7", "row": 7, "seat": 4, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 397, "status": "AVAILABLE"}, {"section": "TBL9", "row": 9, "seat": 1, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 398, "status": "AVAILABLE"}, {"section": "TBL9", "row": 9, "seat": 2, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 399, "status": "AVAILABLE"}, {"section": "TBL9", "row": 9, "seat": 3, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 400, "status": "AVAILABLE"}, {"section": "TBL9", "row": 9, "seat": 4, "priceValue": 343.5, "capacity": 1, "priceLevelName": "VIPBAR", "priceLevel": 4, "holdGroup": "1-ART", "holdName": "DOLLYHOLD", "accessible": "No Accessible Attribute", "id": 401, "status": "AVAILABLE"}]`;
+
+(async function init(){
+  try{
+    await loadState();
+  }catch(e){
+    // Absolute last resort so the UI never stays blank.
+    SEATS = JSON.parse(SEED_SEATS);
+    REQUESTS = [];
+    LOG = [];
+    LINKS = [];
+  }
+  try{
+    GUEST_TOKEN = getRequestedToken();
+  }catch(e){ GUEST_TOKEN = null; }
+  render();
+})();
+</script>
+</body>
+</html>
